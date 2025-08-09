@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact & Carte</title>
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    #map {
+      height: 400px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body onload="checkVisitorCookie()">
+
+  <!-- Barre de navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Mon Site</a>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <!-- Message d'accueil -->
+    <div id="welcomeMessage" class="alert alert-info d-none"></div>
+
+    <!-- Carte Google Maps -->
+    <h2>Notre emplacement</h2>
+    <div id="map"></div>
+
+    <!-- Formulaire de contact -->
+    <h2 class="mt-5">Contactez-nous</h2>
+    <form id="contactForm">
+      <div class="mb-3">
+        <label for="name" class="form-label">Nom</label>
+        <input type="text" class="form-control" id="name" required>
+      </div>
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" required>
+      </div>
+      <div class="mb-3">
+        <label for="message" class="form-label">Message</label>
+        <textarea class="form-control" id="message" rows="3" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Envoyer</button>
+    </form>
+
+    <!-- Bouton Export CSV -->
+    <button id="exportBtn" class="btn btn-success mt-3 d-none">Exporter en CSV</button>
+  </div>
+
+  <!-- Google Maps API (remplacez YOUR_API_KEY par votre clé) -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+
+  <script>
+    // Initialisation de la carte Google Maps
+    function initMap() {
+      const location = { lat: -4.7761, lng: 11.8650 }; // Pointe-Noire, Congo
+      const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 12,
+        center: location,
+      });
+      new google.maps.Marker({ position: location, map: map });
+    }
+
+    // Gestion du formulaire
+    const form = document.getElementById('contactForm');
+    const exportBtn = document.getElementById('exportBtn');
+    let formData = [];
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const message = document.getElementById('message').value;
+
+      // Stockage local
+      formData.push({ name, email, message });
+      localStorage.setItem('contactData', JSON.stringify(formData));
+
+      // Affiche le bouton Export
+      exportBtn.classList.remove('d-none');
+      form.reset();
+    });
+
+    // Exportation en CSV
+    exportBtn.addEventListener('click', function() {
+      const data = JSON.parse(localStorage.getItem('contactData') || '[]');
+      let csv = "Nom,Email,Message\n";
+      data.forEach(row => {
+        csv += `${row.name},${row.email},"${row.message.replace(/"/g, '""')}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'contacts.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Fonctions de gestion des cookies
+    function setCookie(name, value, days) {
+      const expires = new Date(Date.now() + days * 864e5).toUTCString();
+      document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+    }
+
+    function getCookie(name) {
+      return document.cookie.split('; ').reduce((r, v) => {
+        const parts = v.split('=');
+        return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+      }, '');
+    }
+
+    function deleteCookie(name) {
+      setCookie(name, '', -1);
+    }
+
+    // Message d'accueil pour visiteur récurrent
+    function checkVisitorCookie() {
+      const welcome = document.getElementById('welcomeMessage');
+      const visitor = getCookie('visitor');
+      if (visitor) {
+        welcome.textContent = `Bienvenue à nouveau, ${visitor} !`;
+        welcome.classList.remove('d-none');
+      } else {
+        const name = prompt("Bienvenue ! Quel est votre prénom ?");
+        if (name) {
+          setCookie('visitor', name, 7);
+          welcome.textContent = `Bonjour ${name}, ravi de vous rencontrer !`;
+          welcome.classList.remove('d-none');
+        }
+      }
+    }
+  </script>
+</body>
+</html>
